@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MODULES } from '../data/modules';
 
 export default function QuizScreen({ moduleId, onBack, onComplete }) {
@@ -7,6 +7,7 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
   const [answers, setAnswers] = useState({});
   const [selected, setSelected] = useState(null); // single: score | multi: []
   const [animating, setAnimating] = useState(false);
+  const advancing = useRef(false); // impede cliques duplos
 
   const question = module.questions[qIndex];
   const isMulti = question.type === 'multi';
@@ -14,13 +15,15 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
 
   useEffect(() => {
     setSelected(isMulti ? [] : null);
+    advancing.current = false; // libera ao trocar de pergunta
   }, [qIndex, isMulti]);
 
-  const canContinue = isMulti ? (selected?.length > 0) : selected !== null;
+  // Lógica central de avanço — usada por single (auto) e multi (botão)
+  const doAdvance = (score, currentAnswers) => {
+    if (advancing.current) return; // bloqueia duplo disparo
+    advancing.current = true;
 
-  const advance = () => {
-    if (!canContinue) return;
-    const newAnswers = { ...answers, [question.id]: selected };
+    const newAnswers = { ...currentAnswers, [question.id]: score };
 
     if (qIndex < total - 1) {
       setAnimating(true);
@@ -28,44 +31,43 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
         setAnswers(newAnswers);
         setQIndex(i => i + 1);
         setAnimating(false);
+        // advancing.current é liberado pelo useEffect acima ao mudar qIndex
       }, 160);
     } else {
       onComplete(moduleId, newAnswers);
     }
   };
 
-  // Single-select: seleciona e avança automaticamente após 350ms
+  // Single-select: mostra seleção 350ms e avança
   const handleSingleSelect = (score) => {
+    if (advancing.current) return;
     setSelected(score);
-    setTimeout(() => {
-      const newAnswers = { ...answers, [question.id]: score };
-      if (qIndex < total - 1) {
-        setAnimating(true);
-        setTimeout(() => {
-          setAnswers(newAnswers);
-          setQIndex(i => i + 1);
-          setAnimating(false);
-        }, 160);
-      } else {
-        onComplete(moduleId, newAnswers);
-      }
-    }, 350);
+    setTimeout(() => doAdvance(score, answers), 350);
   };
 
+  // Multi-select: toggle normal
   const toggleMulti = (label, opt) => {
     if (opt.exclusive) {
       setSelected([label]);
       return;
     }
     setSelected(prev => {
-      const without = prev.filter(l => {
+      const without = (prev || []).filter(l => {
         const o = question.options.find(x => x.label === l);
         return !o?.exclusive;
       });
-      return without.includes(label) ? without.filter(l => l !== label) : [...without, label];
+      return without.includes(label)
+        ? without.filter(l => l !== label)
+        : [...without, label];
     });
   };
 
+  // Botão Continuar — só para multi-select
+  const handleMultiContinue = () => {
+    doAdvance(selected, answers);
+  };
+
+  const canContinue = isMulti ? (selected?.length > 0) : false;
   const ALPHA = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   return (
@@ -73,7 +75,10 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
       {/* Header */}
       <div style={{ background: module.color, padding: '14px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 640, margin: '0 auto' }}>
-          <button onClick={onBack} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 16, cursor: 'pointer' }}>‹</button>
+          <button
+            onClick={onBack}
+            style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 16, cursor: 'pointer' }}
+          >‹</button>
           <div style={{ flex: 1 }}>
             <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, marginBottom: 4 }}>
               {module.icon} {module.label} — {qIndex + 1}/{total}
@@ -93,7 +98,7 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
 
         {isMulti && (
           <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
-            Selecione todas que se aplicam
+            Selecione todas que se aplicam, depois clique em Continuar
           </p>
         )}
 
@@ -107,11 +112,13 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
               <button
                 key={i}
                 onClick={() => isMulti ? toggleMulti(opt.label, opt) : handleSingleSelect(opt.score)}
+                disabled={!isMulti && advancing.current}
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px',
                   background: isSel ? module.bg : '#fff',
                   border: `1.5px solid ${isSel ? module.color : 'var(--border)'}`,
                   borderRadius: 10, cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s',
+                  opacity: (!isMulti && advancing.current && !isSel) ? 0.5 : 1,
                 }}
               >
                 <span style={{
@@ -132,17 +139,18 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
         </div>
       </div>
 
-      {/* Footer */}
-      {(isMulti || selected !== null) && (
+      {/* Footer — só aparece para multi-select */}
+      {isMulti && (
         <div style={{ padding: '16px', maxWidth: 640, width: '100%', margin: '0 auto' }}>
           <button
-            onClick={advance}
+            onClick={handleMultiContinue}
             disabled={!canContinue}
             style={{
               width: '100%', padding: '13px 0', fontSize: 15, fontWeight: 600,
               background: canContinue ? module.color : '#D0DAE6',
               color: canContinue ? '#fff' : '#8A9BAD',
-              border: 'none', borderRadius: 10, cursor: canContinue ? 'pointer' : 'not-allowed',
+              border: 'none', borderRadius: 10,
+              cursor: canContinue ? 'pointer' : 'not-allowed',
             }}
           >
             {qIndex < total - 1 ? 'Continuar →' : 'Ver resultado →'}
