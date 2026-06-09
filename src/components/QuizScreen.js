@@ -52,7 +52,7 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
       return;
     }
     setSelected(prev => {
-      const without = (prev || []).filter(l => {
+      const without = (Array.isArray(prev) ? prev : []).filter(l => {
         const o = question.options.find(x => x.label === l);
         return !o?.exclusive;
       });
@@ -67,7 +67,7 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
     doAdvance(selected, answers);
   };
 
-  const canContinue = isMulti ? (selected?.length > 0) : false;
+  const canContinue = isMulti ? (Array.isArray(selected) && selected.length > 0) : false;
   const ALPHA = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   return (
@@ -105,7 +105,7 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {question.options.map((opt, i) => {
             const isSel = isMulti
-              ? (selected || []).includes(opt.label)
+              ? (Array.isArray(selected) ? selected : []).includes(opt.label)
               : selected === opt.score;
 
             return (
