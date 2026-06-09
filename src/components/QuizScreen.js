@@ -34,6 +34,24 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
     }
   };
 
+  // Single-select: seleciona e avança automaticamente após 350ms
+  const handleSingleSelect = (score) => {
+    setSelected(score);
+    setTimeout(() => {
+      const newAnswers = { ...answers, [question.id]: score };
+      if (qIndex < total - 1) {
+        setAnimating(true);
+        setTimeout(() => {
+          setAnswers(newAnswers);
+          setQIndex(i => i + 1);
+          setAnimating(false);
+        }, 160);
+      } else {
+        onComplete(moduleId, newAnswers);
+      }
+    }, 350);
+  };
+
   const toggleMulti = (label, opt) => {
     if (opt.exclusive) {
       setSelected([label]);
@@ -88,7 +106,7 @@ export default function QuizScreen({ moduleId, onBack, onComplete }) {
             return (
               <button
                 key={i}
-                onClick={() => isMulti ? toggleMulti(opt.label, opt) : setSelected(opt.score)}
+                onClick={() => isMulti ? toggleMulti(opt.label, opt) : handleSingleSelect(opt.score)}
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px',
                   background: isSel ? module.bg : '#fff',
