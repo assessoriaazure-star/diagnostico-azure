@@ -12,7 +12,7 @@ export default function App() {
   const [intro, setIntro] = useState(null);
   const [activeModule, setActiveModule] = useState(null);
 
-  const { answers, completed, scores, saveAnswers, completedCount, allDone } = useScores();
+  const { completed, scores, saveAnswers, completedCount, allDone } = useScores();
 
   const handleStart = (formData) => {
     setIntro(formData);
