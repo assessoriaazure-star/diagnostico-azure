@@ -9,8 +9,6 @@ import { METAS } from '../data/benchmarks';
 import { getLevel } from '../utils/levels';
 import { calcMedia, getAreasCriticas, getAreasFortes, calcGap } from '../utils/analytics';
 import { ACTIONS } from '../data/actions';
-import { useSheets } from '../hooks/useSheets';
-
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 function getLevelKey(pct) {
@@ -21,13 +19,6 @@ function getLevelKey(pct) {
 }
 
 export default function SummaryScreen({ intro, scores, completedCount, allDone, onHome, onModule }) {
-  const { send, status } = useSheets();
-
-  useEffect(() => {
-    if (allDone && status === 'idle') {
-      send(intro, scores);
-    }
-  }, [allDone]); // eslint-disable-line
 
   const media = calcMedia(scores, MODULE_IDS);
   const level = getLevel(media);
@@ -217,11 +208,8 @@ export default function SummaryScreen({ intro, scores, completedCount, allDone, 
 
         {/* Status envio */}
         {allDone && (
-          <div style={{ padding: '12px 16px', background: status === 'done' ? '#EAF3DE' : status === 'error' ? '#FCEBEB' : '#E6F1FB', border: '0.5px solid var(--border)', borderRadius: 10, fontSize: 13, color: 'var(--text-primary)', textAlign: 'center' }}>
-            {status === 'sending' && '⏳ Enviando dados para o consultor...'}
-            {status === 'done' && '✅ Diagnóstico registrado com sucesso!'}
-            {status === 'error' && '⚠️ Não foi possível salvar os dados. O consultor pode registrar manualmente.'}
-            {status === 'idle' && ''}
+          <div style={{ padding: '12px 16px', background: '#EAF3DE', border: '0.5px solid #B7DDB0', borderRadius: 10, fontSize: 13, color: '#1E7A46', textAlign: 'center', fontWeight: 500 }}>
+            ✅ Diagnóstico completo — dados registrados!
           </div>
         )}
       </div>

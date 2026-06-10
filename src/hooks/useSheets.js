@@ -37,10 +37,11 @@ export function useSheets() {
     };
 
     try {
+      // Apps Script exige text/plain com no-cors (json dispara preflight bloqueado)
       await fetch(SHEETS_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload),
       });
       setStatus('done');
