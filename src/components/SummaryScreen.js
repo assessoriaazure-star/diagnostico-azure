@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend,
   CategoryScale, LinearScale, BarElement,
